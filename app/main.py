@@ -2,27 +2,33 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
 from typing import List
-from pathlib import Path
-from .emailer import write_confirmation
+from emailer import write_confirmation
+from storage import FileStore
+
 app = FastAPI(title="Study Room Booking – Lite")
-# In‑memory state
-ROOMS = [
-{"id": 1, "name": "Room A", "capacity": 4, "location": "Library L1"},
-{"id": 2, "name": "Room B", "capacity": 6, "location": "Library L2"},
-{"id": 3, "name": "Room C", "capacity": 8, "location": "Engr 2F"},
-]
-BOOKINGS: list[dict] = []
-NEXT_ID = 1
-# Simple rules
+
+# ---------- persistence ----------
+store = FileStore()                 # data directory is ../data by default
+ROOMS = store.load_rooms()          # static seed or file content
+BOOKINGS = store.load_bookings()    # list[dict] with datetime objects
+
+def _next_id() -> int:
+    if not BOOKINGS:
+        return 1
+    return max(b["id"] for b in BOOKINGS) + 1
+
+# ---------- rules ----------
 MAX_HOURS_PER_DAY = 2
 CANCEL_CUTOFF_MIN = 30
 
+# ---------- models ----------
 class BookingCreate(BaseModel):
     user_id: int
     room_id: int
     start: datetime
     end: datetime
     group_size: int = Field(ge=1)
+
 class BookingOut(BaseModel):
     id: int
     user_id: int
@@ -30,8 +36,18 @@ class BookingOut(BaseModel):
     start: datetime
     end: datetime
     group_size: int
-@app.get("/rooms")
 
+# ---------- routes ----------
+@app.get("/")
+def root():
+    return {
+        "ok": True,
+        "service": app.title,
+        "docs": "/docs",
+        "endpoints": ["/rooms", "/search", "/bookings", "/users/{user_id}/bookings"]
+    }
+
+@app.get("/rooms")
 def list_rooms():
     return ROOMS
 
@@ -48,7 +64,6 @@ def search_rooms(date: str, start: str, end: str):
 
 @app.post("/bookings", response_model=BookingOut, status_code=201)
 def create_booking(payload: BookingCreate):
-    global NEXT_ID
     # basic checks
     room = _get_room(payload.room_id)
     _ensure_valid(payload.start, payload.end)
@@ -58,10 +73,9 @@ def create_booking(payload: BookingCreate):
         raise HTTPException(409, detail="room already booked for that window")
     if _exceeds_daily_hours(payload.user_id, payload.start, payload.end):
         raise HTTPException(422, detail="daily booking hours limit exceeded")
-    
 
     booking = {
-        "id": NEXT_ID,
+        "id": _next_id(),
         "user_id": payload.user_id,
         "room_id": payload.room_id,
         "start": payload.start,
@@ -69,11 +83,12 @@ def create_booking(payload: BookingCreate):
         "group_size": payload.group_size,
     }
     BOOKINGS.append(booking)
-    write_confirmation(to_email=f"user{payload.user_id}@example.edu",
-                      booking_id=NEXT_ID)
-    NEXT_ID += 1
-    return booking
+    store.save_bookings(BOOKINGS)  # persist to JSON
 
+    # side-effect (ok to be sync for class project)
+    write_confirmation(to_email=f"user{payload.user_id}@example.edu",
+                       booking_id=booking["id"])
+    return booking
 
 @app.get("/users/{user_id}/bookings", response_model=List[BookingOut])
 def my_bookings(user_id: int):
@@ -89,10 +104,11 @@ def cancel_booking(booking_id: int):
     if (b["start"] - now) < timedelta(minutes=CANCEL_CUTOFF_MIN):
         raise HTTPException(422, detail="cannot cancel within 30 minutes of start")
     BOOKINGS.pop(idx)
+    store.save_bookings(BOOKINGS)  # persist deletion
 
-# --- helpers ---
-
+# ---------- helpers ----------
 def _parse_dt(date_str: str, hm: str) -> datetime:
+    # expects YYYY-MM-DD and HH:MM
     try:
         return datetime.fromisoformat(f"{date_str}T{hm}")
     except Exception:
@@ -125,6 +141,6 @@ def _exceeds_daily_hours(user_id: int, start: datetime, end: datetime) -> bool:
             continue
         if not (b["start"] >= day0 and b["end"] <= day1):
             continue
-        total += (b["end"] - b["start"]).total_seconds()/3600
-    total += (end - start).total_seconds()/3600
+        total += (b["end"] - b["start"]).total_seconds() / 3600
+    total += (end - start).total_seconds() / 3600
     return total > MAX_HOURS_PER_DAY + 1e-9
