@@ -1,0 +1,37 @@
+[
+	{ "id": 1, "name": "Room A", "capacity": 4, "location": "Library L1" },
+	{ "id": 2, "name": "Room B", "capacity": 6, "location": "Library L2" },
+	{ "id": 3, "name": "Room C", "capacity": 8, "location": "Engineering 2F" },
+	{ "id": 4, "name": "Room D", "capacity": 10, "location": "Science Hall 3F" },
+	{
+		"id": 5,
+		"name": "Room E",
+		"capacity": 12,
+		"location": "Library L3 Quiet Zone"
+	},
+	{ "id": 6, "name": "Room F", "capacity": 2, "location": "Student Center 1F" },
+	{
+		"id": 7,
+		"name": "Room G",
+		"capacity": 6,
+		"location": "Business School 2F"
+	},
+	{
+		"id": 8,
+		"name": "Room H",
+		"capacity": 15,
+		"location": "Main Auditorium Side Wing"
+	},
+	{
+		"id": 9,
+		"name": "Room I",
+		"capacity": 5,
+		"location": "Dorm Commons Study"
+	},
+	{
+		"id": 10,
+		"name": "Room J",
+		"capacity": 20,
+		"location": "Graduate Lounge Basement"
+	}
+]
