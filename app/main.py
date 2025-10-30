@@ -1,5 +1,6 @@
 # app/main.py
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -10,11 +11,34 @@ from pathlib import Path
 import uuid
 import json
 import datetime as dt
-
+from typing import Optional, Any, Dict, List as _List
+from pydantic import BaseModel as _BaseModel
 from emailer import write_confirmation
 from storage import FileStore
 
-app = FastAPI(title="Study Room Booking – Lite")
+app = FastAPI(
+    title="Study Room Booking – Lite",
+    description="Local-only, file-backed demo API with structured errors and developer CLI.",
+    version="0.3.0",
+)
+
+# CORS for local dev / future Vite frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+# ---------- meta routes ----------
+@app.get("/", tags=["meta"], summary="Service metadata")
+def root():
+    return {"service": app.title, "version": app.version, "docs": "/docs", "redoc": "/redoc"}
+
+@app.get("/health", tags=["meta"], summary="Health check")
+def health():
+    return {"status": "ok"}
 
 # ---------- persistence ----------
 store = FileStore()                 # ../data by default
@@ -45,6 +69,23 @@ class BookingOut(BaseModel):
     start: datetime
     end: datetime
     group_size: int
+
+# ---- OpenAPI helper models (for documenting error responses) ----
+class ErrorBody(_BaseModel):
+    code: str
+    message: str
+    hint: Optional[str] = None
+    extras: Optional[Dict[str, Any]] = None
+    status: int
+    path: str
+    method: str
+    request_id: Optional[str] = None
+    ts: str
+    validation_errors: Optional[_List[Dict[str, Any]]] = None
+
+class ErrorEnvelope(_BaseModel):
+    error: ErrorBody
+
 
 # ---------- error logging / request-id ----------
 DATA_DIR = (Path(__file__).resolve().parent.parent / "data")
@@ -134,11 +175,33 @@ def root():
         "endpoints": ["/rooms", "/search", "/bookings", "/users/{user_id}/bookings"]
     }
 
-@app.get("/rooms")
+@app.get(
+    "/rooms",
+    tags=["rooms"],
+    summary="List all rooms",
+    description="Returns the room catalog loaded from `data/rooms.json`."
+)
 def list_rooms():
     return ROOMS
 
-@app.get("/search")
+@app.get(
+    "/search",
+    tags=["rooms"],
+    summary="Search available rooms",
+    description=(
+        "Returns rooms **without any booking overlap** in the given window.\n\n"
+        "**Date/time format**:\n"
+        "- `date`: `YYYY-MM-DD`\n"
+        "- `start`/`end`: `HH:MM` (24h)\n"
+    ),
+    responses={
+        200: {"description": "List of available rooms"},
+        400: {
+            "description": "Bad date/time or `end <= start`",
+            "model": ErrorEnvelope,
+        },
+    },
+)
 def search_rooms(date: str, start: str, end: str):
     start_dt = _parse_dt(date, start)
     end_dt = _parse_dt(date, end)
@@ -149,7 +212,23 @@ def search_rooms(date: str, start: str, end: str):
             available.append(r)
     return available
 
-@app.post("/bookings", response_model=BookingOut, status_code=201)
+@app.post(
+    "/bookings",
+    tags=["bookings"],
+    summary="Create a booking",
+    response_model=BookingOut,
+    status_code=201,
+    responses={
+        201: {"description": "Created"},
+        400: {"description": "`end` not after `start` or bad payload", "model": ErrorEnvelope},
+        404: {"description": "Room not found", "model": ErrorEnvelope},
+        409: {"description": "Room overlap conflict", "model": ErrorEnvelope},
+        422: {
+            "description": "Capacity exceeded / Daily cap / Validation error",
+            "model": ErrorEnvelope,
+        },
+    },
+)
 def create_booking(payload: BookingCreate):
     room = _get_room(payload.room_id)
     _ensure_valid(payload.start, payload.end)
@@ -187,11 +266,29 @@ def create_booking(payload: BookingCreate):
                        booking_id=booking["id"])
     return booking
 
-@app.get("/users/{user_id}/bookings", response_model=List[BookingOut])
+@app.get(
+    "/users/{user_id}/bookings",
+    tags=["bookings"],
+    summary="List bookings for a user",
+    description="Returns all bookings made by the given `user_id`.",
+    responses={
+        200: {"description": "List of bookings (possibly empty)"},
+    },
+)
 def my_bookings(user_id: int):
     return [b for b in BOOKINGS if b["user_id"] == user_id]
 
-@app.delete("/bookings/{booking_id}", status_code=204)
+@app.delete(
+    "/bookings/{booking_id}",
+    tags=["bookings"],
+    summary="Cancel a booking",
+    status_code=204,
+    responses={
+        204: {"description": "Cancelled"},
+        404: {"description": "Booking not found", "model": ErrorEnvelope},
+        422: {"description": "Too late to cancel (cutoff window)", "model": ErrorEnvelope},
+    },
+)
 def cancel_booking(booking_id: int):
     idx = next((i for i, b in enumerate(BOOKINGS) if b["id"] == booking_id), None)
     if idx is None:
