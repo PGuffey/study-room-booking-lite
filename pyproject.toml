@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "study-room-cli"
+version = "0.1.0"
+description = "CLI for Study Room Booking Lite"
+authors = [{ name = "Your Name" }]
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "typer[all]",
+    "httpx"
+]
+
+[tool.setuptools]
+packages = ["app"]       
+py-modules = ["cli"]     
+
+[project.scripts]
+study-cli = "cli:app"    
