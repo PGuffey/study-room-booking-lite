@@ -1,59 +1,74 @@
-# Study Room Booking — Sprint 1
+# Study Room Booking – Lite
 
-## Overview
-
-Minimal FastAPI service that supports:
-
-- `GET /rooms` – list static rooms
-- `GET /search?date=YYYY-MM-DD&start=HH:MM&end=HH:MM` – find available rooms
-- `POST /bookings` – reserve a room
-- `GET /users/{id}/bookings` – list bookings
-- `DELETE /bookings/{id}` – cancel if >30 min before start
-
-**Rules enforced:**
-
-- Max 2 hours/day per user
-- Group size ≤ room capacity
-
-**“Email confirmations”** are text files saved in `./outbox/`.
+A **local-only, file-backed FastAPI demo** for managing study room bookings.  
+Features include JSON persistence, structured errors, and a developer CLI.
 
 ---
 
-## Quick Start
+## Quickstart
 
-```bash
-pip install fastapi uvicorn pydantic
+### 1) Create & activate venv
+
+`powershell
+python -m venv venv
+venv\Scripts\Activate.ps1
+`
+
+### 2) Install dependencies
+
+`bash
+pip install -r requirements.txt
+`
+
+### 3) Run the API
+
+`bash
 uvicorn app.main:app --reload
-```
+`
 
-Then visit:  
-`http://127.0.0.1:8000/docs`
+Visit:
 
----
-
-## Example Calls
-
-```bash
-GET  /rooms
-GET  /search?date=2025-10-07&start=10:00&end=11:00
-POST /bookings {"user_id":1,"room_id":1,"start":"2025-10-07T10:00:00","end":"2025-10-07T11:00:00","group_size":2}
-GET  /users/1/bookings
-DELETE /bookings/1
-```
+- Root metadata → [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+- Swagger UI → [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- ReDoc → [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
 
 ---
 
-## Notes
+## Developer CLI
 
-- All data is **in-memory**; restarting clears bookings.
-- No database or email service yet.
-- Keep inputs in ISO format (`YYYY-MM-DD` and `HH:MM`).
-- Outbox files appear in `/outbox` folder.
+The CLI provides a simple interface to the API:  
+`bash
+python cli.py rooms
+`
+
+Once installed in editable mode:  
+`bash
+pip install -e .
+study-cli rooms
+`
 
 ---
 
-## Next Steps
+## Data & Persistence
 
-- Add JSON persistence (Sprint 2)
-- Optional React front-end to visualize bookings
-- Add basic automated tests (`pytest`)
+All runtime data lives in `data/`:
+
+- `rooms.json` — seed catalog (tracked)
+- `bookings.json` — bookings (tracked)
+- `errors.ndjson` — error log (tracked)
+- `outbox/` — mock “email” confirmations (ignored by git, `.gitkeep` kept)
+
+---
+
+## Health & Docs
+
+- `GET /` → `{ service, version, docs, redoc }`
+- `GET /health` → `{ "status": "ok" }`
+
+Swagger UI and ReDoc are always available for API reference.
+
+---
+
+## Documentation
+
+For full usage, commands, curl examples, and error codes → see [USAGE.md](USAGE.md).
