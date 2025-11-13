@@ -6,7 +6,6 @@ from fastapi.exceptions import RequestValidationError
 from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
-from typing import List
 from pathlib import Path
 import uuid
 import json
