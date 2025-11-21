@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<title>Study Room Booking – Lite</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+		<!-- Tailwind via CDN -->
+		<script src="https://cdn.tailwindcss.com"></script>
+	</head>
+
+	<body class="bg-slate-100 min-h-screen">
+		<div class="max-w-4xl mx-auto p-4 sm:p-6">
+			<header class="mb-6">
+				<h1 class="text-2xl sm:text-3xl font-bold mb-1">
+					Study Room Booking – Lite
+				</h1>
+				<p class="text-sm text-slate-600">
+					Browse rooms, search availability, book, view your bookings, and
+					cancel.
+				</p>
+			</header>
+
+			<!-- Global error display -->
+			<div
+				id="global-error"
+				class="hidden mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700"
+			></div>
+
+			<!-- Rooms -->
+			<section class="mb-6 bg-white rounded-xl shadow p-4 sm:p-5">
+				<div class="flex items-center justify-between mb-3">
+					<h2 class="font-semibold text-lg">Rooms</h2>
+					<button
+						id="btn-load-rooms"
+						class="text-sm px-3 py-1 rounded bg-slate-900 text-white hover:bg-slate-800"
+					>
+						Load Rooms
+					</button>
+				</div>
+				<div id="rooms-list" class="text-sm text-slate-700">
+					<p class="text-slate-500">
+						Click “Load Rooms” to fetch the room catalog.
+					</p>
+				</div>
+			</section>
+
+			<!-- Search -->
+			<section class="mb-6 bg-white rounded-xl shadow p-4 sm:p-5">
+				<h2 class="font-semibold text-lg mb-3">Search Availability</h2>
+
+				<form id="search-form" class="grid gap-3 sm:grid-cols-4 sm:items-end">
+					<label class="text-sm">
+						Date
+						<input
+							type="date"
+							name="date"
+							class="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+							required
+						/>
+					</label>
+
+					<label class="text-sm">
+						Start
+						<input
+							type="time"
+							name="start"
+							class="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+							required
+						/>
+					</label>
+
+					<label class="text-sm">
+						End
+						<input
+							type="time"
+							name="end"
+							class="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+							required
+						/>
+					</label>
+
+					<button
+						type="submit"
+						class="mt-2 sm:mt-0 px-3 py-2 rounded bg-slate-900 text-white text-sm hover:bg-slate-800"
+					>
+						Search
+					</button>
+				</form>
+
+				<div id="search-results" class="mt-4 text-sm text-slate-700"></div>
+			</section>
+
+			<!-- Book -->
+			<section class="mb-6 bg-white rounded-xl shadow p-4 sm:p-5">
+				<h2 class="font-semibold text-lg mb-3">Book a Room</h2>
+
+				<form id="book-form" class="grid gap-3 sm:grid-cols-5 sm:items-end">
+					<label class="text-sm">
+						User ID
+						<input
+							type="number"
+							name="user_id"
+							min="1"
+							class="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+							required
+						/>
+					</label>
+
+					<label class="text-sm">
+						Room ID
+						<input
+							type="number"
+							name="room_id"
+							min="1"
+							class="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+							required
+						/>
+					</label>
+
+					<label class="text-sm">
+						Start (ISO)
+						<input
+							type="text"
+							name="start_iso"
+							placeholder="2025-11-02T13:00:00"
+							class="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-xs"
+							required
+						/>
+					</label>
+
+					<label class="text-sm">
+						End (ISO)
+						<input
+							type="text"
+							name="end_iso"
+							placeholder="2025-11-02T14:00:00"
+							class="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-xs"
+							required
+						/>
+					</label>
+
+					<label class="text-sm">
+						Group Size
+						<input
+							type="number"
+							name="group_size"
+							min="1"
+							value="1"
+							class="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+						/>
+					</label>
+				</form>
+
+				<div class="mt-3 flex justify-end">
+					<button
+						form="book-form"
+						type="submit"
+						class="px-3 py-2 rounded bg-emerald-600 text-white text-sm hover:bg-emerald-500"
+					>
+						Create Booking
+					</button>
+				</div>
+
+				<div id="book-result" class="mt-3 text-sm text-slate-700"></div>
+			</section>
+
+			<!-- My Bookings -->
+			<section class="mb-10 bg-white rounded-xl shadow p-4 sm:p-5">
+				<h2 class="font-semibold text-lg mb-3">My Bookings</h2>
+
+				<form id="my-bookings-form" class="flex gap-3 items-end">
+					<label class="text-sm flex-1 max-w-xs">
+						User ID
+						<input
+							type="number"
+							name="user_id"
+							min="1"
+							class="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm"
+							required
+						/>
+					</label>
+
+					<button
+						type="submit"
+						class="px-3 py-2 rounded bg-slate-900 text-white text-sm hover:bg-slate-800"
+					>
+						Load My Bookings
+					</button>
+				</form>
+
+				<div id="my-bookings" class="mt-4 text-sm text-slate-700"></div>
+			</section>
+		</div>
+
+		<!-- ---------- SCRIPT ---------- -->
+		<script>
+			const apiBase = ""; // same-origin
+
+			const globalError = document.getElementById("global-error");
+
+			// Display FastAPI structured errors
+			function showError(err) {
+				if (!err) {
+					globalError.classList.add("hidden");
+					globalError.textContent = "";
+					return;
+				}
+
+				globalError.classList.remove("hidden");
+
+				if (err.error) {
+					const e = err.error;
+					let msg = `[${e.code}] ${e.message}`;
+					if (e.hint) msg += ` — ${e.hint}`;
+					globalError.textContent = msg;
+				} else {
+					globalError.textContent =
+						typeof err === "string" ? err : JSON.stringify(err);
+				}
+			}
+
+			// Wrapper around fetch that handles JSON + FastAPI error envelope
+			async function apiFetch(path, opts = {}) {
+				showError(null);
+				const res = await fetch(apiBase + path, {
+					headers: { "Content-Type": "application/json" },
+					...opts,
+				});
+
+				let data = null;
+				try {
+					data = await res.json();
+				} catch {}
+
+				if (!res.ok) {
+					if (data && data.error) showError(data);
+					else showError(`HTTP ${res.status}`);
+					throw new Error("API error");
+				}
+
+				return data;
+			}
+
+			// ---------------- Rooms -----------------
+			document.getElementById("btn-load-rooms").onclick = async () => {
+				const out = document.getElementById("rooms-list");
+				out.textContent = "Loading...";
+				try {
+					const rooms = await apiFetch("/rooms");
+					if (!rooms.length) {
+						out.textContent = "No rooms found.";
+						return;
+					}
+					const rows = rooms
+						.map(
+							(r) => `
+              <tr>
+                <td class="border px-2 py-1">${r.id}</td>
+                <td class="border px-2 py-1">${r.name}</td>
+                <td class="border px-2 py-1">${r.capacity}</td>
+                <td class="border px-2 py-1">${r.location}</td>
+              </tr>
+            `
+						)
+						.join("");
+
+					out.innerHTML = `
+            <div class="overflow-x-auto">
+              <table class="min-w-full border text-xs sm:text-sm">
+                <thead class="bg-slate-50">
+                  <tr>
+                    <th class="border px-2 py-1 text-left">ID</th>
+                    <th class="border px-2 py-1 text-left">Name</th>
+                    <th class="border px-2 py-1 text-left">Capacity</th>
+                    <th class="border px-2 py-1 text-left">Location</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          `;
+				} catch {
+					out.textContent = "Failed to load rooms.";
+				}
+			};
+
+			// ---------------- Search -----------------
+			document.getElementById("search-form").onsubmit = async (e) => {
+				e.preventDefault();
+				const f = e.target;
+				const date = f.date.value;
+				const start = f.start.value;
+				const end = f.end.value;
+
+				const out = document.getElementById("search-results");
+				out.textContent = "Searching...";
+
+				try {
+					const rooms = await apiFetch(
+						`/search?date=${date}&start=${start}&end=${end}`
+					);
+					if (!rooms.length) {
+						out.textContent = "No available rooms.";
+						return;
+					}
+
+					out.innerHTML = `
+            <ul class="text-sm">
+              ${rooms
+								.map(
+									(r) => `
+                <li class="border rounded px-2 py-1 mb-1 flex justify-between">
+                  <span>
+                    <span class="font-medium">${r.name}</span>
+                    <span class="text-xs text-slate-500 ml-1">(ID ${r.id})</span>
+                  </span>
+                  <span class="text-xs text-slate-500">${r.location}</span>
+                </li>`
+								)
+								.join("")}
+            </ul>
+          `;
+				} catch {
+					if (globalError.classList.contains("hidden"))
+						out.textContent = "Search failed.";
+				}
+			};
+
+			// ---------------- Book -----------------
+			document.getElementById("book-form").onsubmit = async (e) => {
+				e.preventDefault();
+				const f = e.target;
+
+				const payload = {
+					user_id: Number(f.user_id.value),
+					room_id: Number(f.room_id.value),
+					start: f.start_iso.value,
+					end: f.end_iso.value,
+					group_size: Number(f.group_size.value || 1),
+				};
+
+				const out = document.getElementById("book-result");
+				out.textContent = "Creating booking...";
+
+				try {
+					const booking = await apiFetch("/bookings", {
+						method: "POST",
+						body: JSON.stringify(payload),
+					});
+
+					out.innerHTML = `
+            <p class="text-emerald-700">
+              Booking created with ID 
+              <span class="font-semibold">${booking.id}</span>.
+            </p>`;
+				} catch {
+					if (globalError.classList.contains("hidden"))
+						out.textContent = "Booking failed.";
+				}
+			};
+
+			// ---------------- My Bookings -----------------
+			document.getElementById("my-bookings-form").onsubmit = async (e) => {
+				e.preventDefault();
+				const f = e.target;
+				const userId = Number(f.user_id.value);
+
+				const out = document.getElementById("my-bookings");
+				out.textContent = "Loading...";
+
+				try {
+					const bookings = await apiFetch(`/users/${userId}/bookings`);
+					if (!bookings.length) {
+						out.textContent = "No bookings for this user.";
+						return;
+					}
+
+					out.innerHTML = bookings
+						.map(
+							(b) => `
+            <div class="border rounded px-3 py-2 mb-2 flex justify-between items-center">
+              <div>
+                <div class="font-medium text-sm">Booking #${b.id}</div>
+                <div class="text-xs text-slate-500">
+                  Room ${b.room_id} — ${b.start} → ${b.end} — group ${b.group_size}
+                </div>
+              </div>
+              <button
+                class="text-xs px-2 py-1 rounded bg-red-600 text-white hover:bg-red-500"
+                data-id="${b.id}">
+                Cancel
+              </button>
+            </div>`
+						)
+						.join("");
+				} catch {
+					if (globalError.classList.contains("hidden"))
+						out.textContent = "Failed to load bookings.";
+				}
+			};
+
+			// Cancel booking
+			document.getElementById("my-bookings").onclick = async (e) => {
+				const btn = e.target.closest("button[data-id]");
+				if (!btn) return;
+
+				const id = Number(btn.dataset.id);
+				if (!id || !confirm(`Cancel booking #${id}?`)) return;
+
+				try {
+					await apiFetch(`/bookings/${id}`, { method: "DELETE" });
+					document
+						.getElementById("my-bookings-form")
+						.dispatchEvent(new Event("submit", { bubbles: true }));
+				} catch {}
+			};
+		</script>
+	</body>
+</html>
