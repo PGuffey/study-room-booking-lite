@@ -306,8 +306,10 @@ def create_booking(payload: BookingCreate):
     store.save_bookings(BOOKINGS)
 
     write_confirmation(
-        to_email=f"user{payload.user_id}@example.edu", booking_id=booking["id"]
+        to_email=f"user{payload.user_id}@example.edu",
+        booking_id=int(booking["id"]),
     )
+
     return booking
 
 
