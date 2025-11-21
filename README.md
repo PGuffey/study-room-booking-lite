@@ -1,74 +1,241 @@
-# Study Room Booking – Lite
+# 📚 Study Room Booking – Lite
 
-A **local-only, file-backed FastAPI demo** for managing study room bookings.  
-Features include JSON persistence, structured errors, and a developer CLI.
+A **local-only, file-backed FastAPI demo** providing:
+
+- Study room browsing
+
+- Availability search
+
+- Booking creation
+
+- My bookings view
+
+- Cancel booking
+
+- Inline error messages with structured FastAPI error envelopes
+
+- A simple built-in **web frontend** (no framework)
+
+- A developer **CLI**
+
+- Persistent JSON storage
+
+- CI: ruff, mypy, pytest, import validation
+
+This is a lightweight learning project demonstrating API design, error modeling, frontend consumption via `fetch()`, and safer patterns for file-backed persistence.
 
 ---
 
-## Quickstart
+# 🚀 Quick Start
 
-### 1) Create & activate venv
+### 1) Install dependencies
 
-`powershell
-python -m venv venv
-venv\Scripts\Activate.ps1
-`
+```bash
 
-### 2) Install dependencies
-
-`bash
 pip install -r requirements.txt
-`
 
-### 3) Run the API
+```
 
-`bash
+---
+
+### 2) Run the API + Frontend
+
+```bash
+
 uvicorn app.main:app --reload
-`
+
+```
 
 Visit:
 
-- Root metadata → [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
-- Swagger UI → [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- ReDoc → [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+- **Frontend UI** → http://127.0.0.1:8000/
+
+- **API metadata** → http://127.0.0.1:8000/api
+
+- **Swagger docs** → http://127.0.0.1:8000/docs
+
+- **ReDoc** → http://127.0.0.1:8000/redoc
 
 ---
 
-## Developer CLI
+# 🖥️ Frontend UI (MVP)
 
-The CLI provides a simple interface to the API:  
-`bash
+A pure **vanilla HTML + JS** frontend lives in:
+
+```
+
+web/index.html
+
+```
+
+It is automatically served at:
+
+```
+
+GET /
+
+```
+
+### The UI supports:
+
+✔ Load Rooms
+
+✔ Search availability
+
+✔ Create booking
+
+✔ View my bookings
+
+✔ Cancel booking
+
+✔ Inline structured error display (`error.code`, `error.message`, `error.hint`)
+
+✔ Mobile-friendly via Tailwind CDN
+
+✔ Uses `fetch()` to call all API endpoints
+
+---
+
+# 🧪 Running Tests
+
+This project includes CI-verified smoke tests.
+
+Run locally:
+
+```bash
+
+pytest -q
+
+```
+
+Tests confirm:
+
+- API imports cleanly
+
+- `/health` responds with `{ "status": "ok" }`
+
+- `/api` exposes service metadata
+
+---
+
+# 🛠️ Developer CLI
+
+A simple Typer-powered CLI is included:
+
+```bash
+
 python cli.py rooms
-`
 
-Once installed in editable mode:  
-`bash
+python cli.py search 2025-11-02 13:00 14:00
+
+python cli.py book 1 2 2025-11-02T13:00:00 2025-11-02T14:00:00
+
+python cli.py mine 1
+
+python cli.py cancel 5
+
+```
+
+Once installed in editable mode:
+
+```bash
+
 pip install -e .
+
 study-cli rooms
-`
+
+```
+
+The CLI is validated in CI to ensure no regressions.
 
 ---
 
-## Data & Persistence
+# 📦 Data & Persistence
 
-All runtime data lives in `data/`:
+All runtime JSON storage lives in `data/`.
 
-- `rooms.json` — seed catalog (tracked)
-- `bookings.json` — bookings (tracked)
-- `errors.ndjson` — error log (tracked)
-- `outbox/` — mock “email” confirmations (ignored by git, `.gitkeep` kept)
+- `rooms.json` — static room catalog
 
----
+- `bookings.json` — saved on every booking / cancel
 
-## Health & Docs
+- `errors.ndjson` — structured error envelope logs
 
-- `GET /` → `{ service, version, docs, redoc }`
-- `GET /health` → `{ "status": "ok" }`
+- `data/outbox/` — mock outbound emails (`booking_123.txt`)
 
-Swagger UI and ReDoc are always available for API reference.
+This project uses **atomic writes** to avoid partial corruption.
 
 ---
 
-## Documentation
+# 🔧 CI / CD Pipeline
 
-For full usage, commands, curl examples, and error codes → see [USAGE.md](USAGE.md).
+Your GitHub Actions workflow (`ci.yml`) runs:
+
+- ✔ **ruff check** (lint)
+
+- ✔ **ruff format --check**
+
+- ✔ **mypy** (type checking)
+
+- ✔ **pytest**
+
+- ✔ Import FastAPI app
+
+- ✔ Import CLI
+
+- ✔ Multi-Python matrix (3.11 + 3.12)
+
+A merged PR means all validations passed.
+
+---
+
+# 🌐 API Overview
+
+### `/api`
+
+Returns metadata:
+
+```json
+{
+	"ok": true,
+
+	"service": "Study Room Booking – Lite",
+
+	"version": "0.3.0",
+
+	"endpoints": ["/rooms", "/search", "/bookings", "/users/{user_id}/bookings"]
+}
+```
+
+### `/rooms`
+
+### `/search?date=YYYY-MM-DD&start=HH:MM&end=HH:MM`
+
+### `POST /bookings`
+
+### `/users/{user_id}/bookings`
+
+### `DELETE /bookings/{booking_id}`
+
+All errors follow a structured envelope:
+
+```json
+{
+	"error": {
+		"code": "OVERLAP_CONFLICT",
+
+		"message": "room already booked for that window",
+
+		"hint": "Pick a different time or room.",
+
+		"status": 409,
+
+		"path": "/bookings",
+
+		"method": "POST",
+
+		"ts": "2025-11-21T10:31:02.512Z"
+	}
+}
+```
+
+---
