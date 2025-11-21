@@ -1,5 +1,7 @@
 # cli.py
-import os, sys, json
+import json
+import os
+import sys
 import typer
 import httpx
 

@@ -33,7 +33,15 @@ app.add_middleware(
 # ---------- meta routes ----------
 @app.get("/", tags=["meta"], summary="Service metadata")
 def root():
-    return {"service": app.title, "version": app.version, "docs": "/docs", "redoc": "/redoc"}
+    return {
+        "ok": True,
+        "service": app.title,
+        "version": app.version,
+        "docs": "/docs",
+        "redoc": "/redoc",
+        "endpoints": ["/rooms", "/search", "/bookings", "/users/{user_id}/bookings"],
+    }
+
 
 @app.get("/health", tags=["meta"], summary="Health check")
 def health():
@@ -165,14 +173,6 @@ async def unhandled_exc_handler(request: Request, exc: Exception):
     return JSONResponse(payload, status_code=500)
 
 # ---------- routes ----------
-@app.get("/")
-def root():
-    return {
-        "ok": True,
-        "service": app.title,
-        "docs": "/docs",
-        "endpoints": ["/rooms", "/search", "/bookings", "/users/{user_id}/bookings"]
-    }
 
 @app.get(
     "/rooms",
