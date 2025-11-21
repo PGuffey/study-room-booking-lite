@@ -7,6 +7,7 @@ import json
 import tempfile
 import os
 
+
 class FileStore:
     """
     Simple JSON-backed storage for rooms and bookings.
@@ -29,7 +30,12 @@ class FileStore:
             default_rooms = [
                 {"id": 1, "name": "Room A", "capacity": 4, "location": "Library L1"},
                 {"id": 2, "name": "Room B", "capacity": 6, "location": "Library L2"},
-                {"id": 3, "name": "Room C", "capacity": 8, "location": "Engineering 2F"},
+                {
+                    "id": 3,
+                    "name": "Room C",
+                    "capacity": 8,
+                    "location": "Engineering 2F",
+                },
             ]
             self._atomic_write_json(self.rooms_path, default_rooms)
 
@@ -51,7 +57,9 @@ class FileStore:
                 print(f"[storage] Skipping invalid room at index {i}: {ex}")
                 continue
             if room["id"] in seen_ids:
-                print(f"[storage] Duplicate room id {room['id']} ignored (keeping first).")
+                print(
+                    f"[storage] Duplicate room id {room['id']} ignored (keeping first)."
+                )
                 continue
             seen_ids.add(room["id"])
             rooms.append(room)
@@ -215,7 +223,9 @@ class FileStore:
         """
         dir_ = path.parent
         dir_.mkdir(parents=True, exist_ok=True)
-        with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=dir_, delete=False) as tf:
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", dir=dir_, delete=False
+        ) as tf:
             tmp_name = tf.name
             tf.write(data)
             tf.flush()
