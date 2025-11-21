@@ -307,8 +307,9 @@ def create_booking(payload: BookingCreate):
 
     write_confirmation(
         to_email=f"user{payload.user_id}@example.edu",
-        booking_id=int(booking["id"]),
+        booking_id=cast(int, booking["id"]),
     )
+
 
     return booking
 
