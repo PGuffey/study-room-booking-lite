@@ -310,7 +310,6 @@ def create_booking(payload: BookingCreate):
         booking_id=cast(int, booking["id"]),
     )
 
-
     return booking
 
 
