@@ -54,4 +54,4 @@ jobs:
 
       # Ensure Typer CLI loads
       - name: Validate Typer CLI loads
-        run: python -c "from cli.main import app"
+        run: python -c "from cli import app"
