@@ -12,8 +12,8 @@ import json
 import datetime as dt
 from typing import NoReturn, Optional, Any, Dict, List as _List, cast
 from pydantic import BaseModel as _BaseModel
-from emailer import write_confirmation
-from storage import FileStore
+from .emailer import write_confirmation
+from .storage import FileStore
 
 app = FastAPI(
     title="Study Room Booking – Lite",
