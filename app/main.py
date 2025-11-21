@@ -30,6 +30,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
 # ---------- meta routes ----------
 @app.get("/", tags=["meta"], summary="Service metadata")
 def root():
@@ -47,19 +49,23 @@ def root():
 def health():
     return {"status": "ok"}
 
+
 # ---------- persistence ----------
-store = FileStore()                 # ../data by default
+store = FileStore()  # ../data by default
 ROOMS = store.load_rooms()
 BOOKINGS = store.load_bookings()
+
 
 def _next_id() -> int:
     if not BOOKINGS:
         return 1
     return max(b["id"] for b in BOOKINGS) + 1
 
+
 # ---------- rules ----------
 MAX_HOURS_PER_DAY = 2
 CANCEL_CUTOFF_MIN = 30
+
 
 # ---------- models ----------
 class BookingCreate(BaseModel):
@@ -69,6 +75,7 @@ class BookingCreate(BaseModel):
     end: datetime
     group_size: int = Field(ge=1)
 
+
 class BookingOut(BaseModel):
     id: int
     user_id: int
@@ -76,6 +83,7 @@ class BookingOut(BaseModel):
     start: datetime
     end: datetime
     group_size: int
+
 
 # ---- OpenAPI helper models (for documenting error responses) ----
 class ErrorBody(_BaseModel):
@@ -90,14 +98,16 @@ class ErrorBody(_BaseModel):
     ts: str
     validation_errors: Optional[_List[Dict[str, Any]]] = None
 
+
 class ErrorEnvelope(_BaseModel):
     error: ErrorBody
 
 
 # ---------- error logging / request-id ----------
-DATA_DIR = (Path(__file__).resolve().parent.parent / "data")
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
-ERROR_LOG_PATH = DATA_DIR / "errors.ndjson"   # newline-delimited JSON
+ERROR_LOG_PATH = DATA_DIR / "errors.ndjson"  # newline-delimited JSON
+
 
 def _append_error_to_log(payload: dict) -> None:
     try:
@@ -107,6 +117,7 @@ def _append_error_to_log(payload: dict) -> None:
         # Silent fail: we never want logging to crash the API
         pass
 
+
 class RequestIdMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         request.state.request_id = uuid.uuid4().hex
@@ -114,7 +125,9 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         response.headers["X-Request-ID"] = request.state.request_id
         return response
 
+
 app.add_middleware(RequestIdMiddleware)
+
 
 def _error_payload(request: Request, status: int, detail):
     # detail can be str or dict; normalize to dict
@@ -127,12 +140,20 @@ def _error_payload(request: Request, status: int, detail):
             "path": request.url.path,
             "method": request.method,
             "request_id": getattr(request.state, "request_id", None),
-            "ts": dt.datetime.now().isoformat()
+            "ts": dt.datetime.now().isoformat(),
         }
     }
     return payload
 
-def err(code: str, message: str, *, hint: str | None = None, extras: dict | None = None, status: int = 400):
+
+def err(
+    code: str,
+    message: str,
+    *,
+    hint: str | None = None,
+    extras: dict | None = None,
+    status: int = 400,
+):
     detail = {"code": code, "message": message}
     if hint:
         detail["hint"] = hint
@@ -140,11 +161,13 @@ def err(code: str, message: str, *, hint: str | None = None, extras: dict | None
         detail["extras"] = extras
     raise HTTPException(status, detail=detail)
 
+
 @app.exception_handler(HTTPException)
 async def http_exc_handler(request: Request, exc: HTTPException):
     payload = _error_payload(request, exc.status_code, exc.detail)
     _append_error_to_log(payload)  # <- write to data/errors.ndjson
     return JSONResponse(payload, status_code=exc.status_code)
+
 
 @app.exception_handler(RequestValidationError)
 async def pydantic_exc_handler(request: Request, exc: RequestValidationError):
@@ -152,11 +175,12 @@ async def pydantic_exc_handler(request: Request, exc: RequestValidationError):
         "code": "VALIDATION_ERROR",
         "message": "Request validation failed",
         "validation_errors": exc.errors(),
-        "hint": "Check field names and types; see 'validation_errors'."
+        "hint": "Check field names and types; see 'validation_errors'.",
     }
     payload = _error_payload(request, 422, detail)
     _append_error_to_log(payload)
     return JSONResponse(payload, status_code=422)
+
 
 @app.exception_handler(Exception)
 async def unhandled_exc_handler(request: Request, exc: Exception):
@@ -172,16 +196,19 @@ async def unhandled_exc_handler(request: Request, exc: Exception):
     _append_error_to_log(payload)
     return JSONResponse(payload, status_code=500)
 
+
 # ---------- routes ----------
+
 
 @app.get(
     "/rooms",
     tags=["rooms"],
     summary="List all rooms",
-    description="Returns the room catalog loaded from `data/rooms.json`."
+    description="Returns the room catalog loaded from `data/rooms.json`.",
 )
 def list_rooms():
     return ROOMS
+
 
 @app.get(
     "/search",
@@ -211,6 +238,7 @@ def search_rooms(date: str, start: str, end: str):
             available.append(r)
     return available
 
+
 @app.post(
     "/bookings",
     tags=["bookings"],
@@ -219,7 +247,10 @@ def search_rooms(date: str, start: str, end: str):
     status_code=201,
     responses={
         201: {"description": "Created"},
-        400: {"description": "`end` not after `start` or bad payload", "model": ErrorEnvelope},
+        400: {
+            "description": "`end` not after `start` or bad payload",
+            "model": ErrorEnvelope,
+        },
         404: {"description": "Room not found", "model": ErrorEnvelope},
         409: {"description": "Room overlap conflict", "model": ErrorEnvelope},
         422: {
@@ -232,23 +263,29 @@ def create_booking(payload: BookingCreate):
     room = _get_room(payload.room_id)
     _ensure_valid(payload.start, payload.end)
     if payload.group_size > room["capacity"]:
-        err("CAPACITY_EXCEEDED",
+        err(
+            "CAPACITY_EXCEEDED",
             "group_size exceeds room capacity",
             hint=f"Room capacity is {room['capacity']}.",
             extras={"room_capacity": room["capacity"]},
-            status=422)
+            status=422,
+        )
     if _has_overlap(payload.room_id, payload.start, payload.end):
-        err("OVERLAP_CONFLICT",
+        err(
+            "OVERLAP_CONFLICT",
             "room already booked for that window",
             hint="Pick a different time or room.",
             extras={"room_id": payload.room_id},
-            status=409)
+            status=409,
+        )
     if _exceeds_daily_hours(payload.user_id, payload.start, payload.end):
-        err("DAILY_CAP_EXCEEDED",
+        err(
+            "DAILY_CAP_EXCEEDED",
             "daily booking hours limit exceeded",
             hint=f"Max per day is {MAX_HOURS_PER_DAY} hours.",
             extras={"max_hours_per_day": MAX_HOURS_PER_DAY},
-            status=422)
+            status=422,
+        )
 
     booking = {
         "id": _next_id(),
@@ -261,9 +298,11 @@ def create_booking(payload: BookingCreate):
     BOOKINGS.append(booking)
     store.save_bookings(BOOKINGS)
 
-    write_confirmation(to_email=f"user{payload.user_id}@example.edu",
-                       booking_id=booking["id"])
+    write_confirmation(
+        to_email=f"user{payload.user_id}@example.edu", booking_id=booking["id"]
+    )
     return booking
+
 
 @app.get(
     "/users/{user_id}/bookings",
@@ -277,6 +316,7 @@ def create_booking(payload: BookingCreate):
 def my_bookings(user_id: int):
     return [b for b in BOOKINGS if b["user_id"] == user_id]
 
+
 @app.delete(
     "/bookings/{booking_id}",
     tags=["bookings"],
@@ -285,44 +325,64 @@ def my_bookings(user_id: int):
     responses={
         204: {"description": "Cancelled"},
         404: {"description": "Booking not found", "model": ErrorEnvelope},
-        422: {"description": "Too late to cancel (cutoff window)", "model": ErrorEnvelope},
+        422: {
+            "description": "Too late to cancel (cutoff window)",
+            "model": ErrorEnvelope,
+        },
     },
 )
 def cancel_booking(booking_id: int):
     idx = next((i for i, b in enumerate(BOOKINGS) if b["id"] == booking_id), None)
     if idx is None:
-        err("BOOKING_NOT_FOUND", "booking not found", extras={"booking_id": booking_id}, status=404)
+        err(
+            "BOOKING_NOT_FOUND",
+            "booking not found",
+            extras={"booking_id": booking_id},
+            status=404,
+        )
     b = BOOKINGS[idx]
     now = datetime.now(b["start"].tzinfo)
     if (b["start"] - now) < timedelta(minutes=CANCEL_CUTOFF_MIN):
-        err("CANCEL_CUTOFF",
+        err(
+            "CANCEL_CUTOFF",
             "cannot cancel within 30 minutes of start",
             hint=f"Cutoff is {CANCEL_CUTOFF_MIN} minutes.",
             extras={"cutoff_minutes": CANCEL_CUTOFF_MIN},
-            status=422)
+            status=422,
+        )
     BOOKINGS.pop(idx)
     store.save_bookings(BOOKINGS)
+
 
 # ---------- helpers ----------
 def _parse_dt(date_str: str, hm: str) -> datetime:
     try:
         return datetime.fromisoformat(f"{date_str}T{hm}")
     except Exception:
-        err("BAD_DATETIME_FORMAT",
+        err(
+            "BAD_DATETIME_FORMAT",
             "use YYYY-MM-DD for date and HH:MM for time",
             hint="Example: /search?date=2025-11-16&start=13:00&end=14:00",
-            status=400)
+            status=400,
+        )
+
 
 def _ensure_valid(start: datetime, end: datetime):
     if end <= start:
-        err("END_NOT_AFTER_START", "end must be after start",
-            hint="Ensure end time is later than start time.", status=400)
+        err(
+            "END_NOT_AFTER_START",
+            "end must be after start",
+            hint="Ensure end time is later than start time.",
+            status=400,
+        )
+
 
 def _get_room(room_id: int) -> dict:
     r = next((r for r in ROOMS if r["id"] == room_id), None)
     if not r:
         err("ROOM_NOT_FOUND", "room not found", extras={"room_id": room_id}, status=404)
     return r
+
 
 def _has_overlap(room_id: int, start: datetime, end: datetime) -> bool:
     for b in BOOKINGS:
@@ -331,6 +391,7 @@ def _has_overlap(room_id: int, start: datetime, end: datetime) -> bool:
         if b["start"] < end and b["end"] > start:
             return True
     return False
+
 
 def _exceeds_daily_hours(user_id: int, start: datetime, end: datetime) -> bool:
     day0 = start.replace(hour=0, minute=0, second=0, microsecond=0)

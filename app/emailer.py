@@ -7,6 +7,7 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 OUTBOX = DATA_DIR / "outbox"
 OUTBOX.mkdir(parents=True, exist_ok=True)
 
+
 def write_confirmation(to_email: str, booking_id: int):
     path = OUTBOX / f"booking_{booking_id}.txt"
     content = (
