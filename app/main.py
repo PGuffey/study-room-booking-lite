@@ -10,7 +10,7 @@ from pathlib import Path
 import uuid
 import json
 import datetime as dt
-from typing import Optional, Any, Dict, List as _List
+from typing import NoReturn, Optional, Any, Dict, List as _List, cast
 from pydantic import BaseModel as _BaseModel
 from emailer import write_confirmation
 from storage import FileStore
@@ -129,13 +129,20 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
 app.add_middleware(RequestIdMiddleware)
 
 
-def _error_payload(request: Request, status: int, detail):
+def _error_payload(
+    request: Request,
+    status: int,
+    detail: dict[str, Any] | str,
+) -> dict[str, Any]:
     # detail can be str or dict; normalize to dict
     if isinstance(detail, str):
-        detail = {"code": "HTTP_ERROR", "message": detail}
-    payload = {
+        detail_dict: dict[str, Any] = {"code": "HTTP_ERROR", "message": detail}
+    else:
+        detail_dict = detail
+
+    payload: dict[str, Any] = {
         "error": {
-            **detail,
+            **detail_dict,
             "status": status,
             "path": request.url.path,
             "method": request.method,
@@ -153,8 +160,8 @@ def err(
     hint: str | None = None,
     extras: dict | None = None,
     status: int = 400,
-):
-    detail = {"code": code, "message": message}
+) -> NoReturn:
+    detail: dict[str, Any] = {"code": code, "message": message}
     if hint:
         detail["hint"] = hint
     if extras:
@@ -377,11 +384,11 @@ def _ensure_valid(start: datetime, end: datetime):
         )
 
 
-def _get_room(room_id: int) -> dict:
+def _get_room(room_id: int) -> dict[str, Any]:
     r = next((r for r in ROOMS if r["id"] == room_id), None)
-    if not r:
+    if r is None:
         err("ROOM_NOT_FOUND", "room not found", extras={"room_id": room_id}, status=404)
-    return r
+    return cast(dict[str, Any], r)
 
 
 def _has_overlap(room_id: int, start: datetime, end: datetime) -> bool:
