@@ -13,7 +13,7 @@ def test_health_endpoint_ok() -> None:
 
 
 def test_root_metadata_ok() -> None:
-    response = client.get("/")
+    response = client.get("/api")
     body = response.json()
     assert body.get("ok") is True
     assert "service" in body

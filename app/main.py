@@ -1,7 +1,8 @@
 # app/main.py
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
@@ -21,6 +22,25 @@ app = FastAPI(
     version="0.3.0",
 )
 
+# --- Web frontend directory ---
+WEB_DIR = Path(__file__).resolve().parent.parent / "web"
+if WEB_DIR.exists():
+    # If you later add CSS/JS files (app.js, styles.css), they can be served from /static/...
+    app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="static")
+
+
+@app.get("/", include_in_schema=False)
+def serve_index():
+    idx = WEB_DIR / "index.html"
+    if idx.exists():
+        return FileResponse(str(idx))
+    # Fallback if index.html is missing
+    return {
+        "ok": True,
+        "docs": "/docs",
+    }
+
+
 # CORS for local dev / future Vite frontend
 app.add_middleware(
     CORSMiddleware,
@@ -33,7 +53,7 @@ app.add_middleware(
 
 
 # ---------- meta routes ----------
-@app.get("/", tags=["meta"], summary="Service metadata")
+@app.get("/api", tags=["meta"], summary="Service metadata")
 def root():
     return {
         "ok": True,
@@ -205,8 +225,6 @@ async def unhandled_exc_handler(request: Request, exc: Exception):
 
 
 # ---------- routes ----------
-
-
 @app.get(
     "/rooms",
     tags=["rooms"],
