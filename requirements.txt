@@ -8,6 +8,7 @@ fastapi==0.120.2
 h11==0.16.0
 httpcore==1.0.9
 httpx==0.28.1
+huggingface_hub>=0.23
 idna==3.11
 iniconfig==2.3.0
 markdown-it-py==4.0.0
