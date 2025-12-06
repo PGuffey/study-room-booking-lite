@@ -185,6 +185,37 @@ def cancel(
         )
         sys.exit(2)
 
+@app.command("ai-chat")
+def ai_chat(
+    message: str = typer.Argument(
+        ..., help="Question or description for the Study Room AI assistant"
+    ),
+    api: str = typer.Option(
+        None, "--api", help="Base API URL (or set STUDY_API env var)"
+    ),
+):
+    """
+    Ask the Study Room AI assistant for help.
+
+    Examples:
+      python cli.py ai-chat "What kind of room is good for 4 people near the library?"
+    """
+    base = resolve_api(api)
+    try:
+        r = httpx.post(
+            f"{base}/ai/chat",
+            json={"message": message},
+            timeout=15,
+        )
+        sys.exit(handle_response(r, {200}))
+    except httpx.RequestError as e:
+        typer.secho(
+            f"Cannot reach API at {base} ({e.__class__.__name__}): {e}",
+            fg=typer.colors.RED,
+        )
+        sys.exit(2)
+
+
 
 if __name__ == "__main__":
     app()
