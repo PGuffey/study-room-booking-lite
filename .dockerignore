@@ -1,0 +1,32 @@
+__pycache__/
+*.pyc
+*.pyo
+*.log
+
+venv/
+.env/
+.env
+*.sqlite3
+
+.git
+.gitignore
+.github/
+.idea/
+.vscode/
+
+.pytest_cache/
+ruff_cache/
+.mypy_cache/
+
+dist/
+build/
+
+.sprint_documents/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Outbox mock emails (keep folder, ignore contents)
+data/outbox/*
+!data/outbox/.gitkeep

@@ -1,0 +1,11 @@
+services:
+  api:
+    build: .
+    container_name: studyroom-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    env:
+      - .env
+    restart: unless-stopped
