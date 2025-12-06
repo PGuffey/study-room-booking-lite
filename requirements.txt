@@ -32,7 +32,6 @@ ruff==0.14.5
 shellingham==1.5.4
 sniffio==1.3.1
 starlette==0.49.1
-study-room-cli @ file:///C:/Users/guffe/Documents/Computer_Science/CSCI_3300/study-room-booking-lite
 tqdm==4.67.1
 typer==0.20.0
 typer-slim==0.20.0
