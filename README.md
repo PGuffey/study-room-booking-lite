@@ -1,241 +1,85 @@
-# 📚 Study Room Booking – Lite
+# Study Room Booking – Lite
 
-A **local-only, file-backed FastAPI demo** providing:
+This project was built as part of a university course.  
+The goal wasn’t to create a massive application — the focus was **simplicity**,  
+but with enough technical variety to demonstrate a _wide breadth_ of tools, patterns,  
+and real-world development practices.
 
-- Study room browsing
+At its core, this is a **file-based room booking application**.  
+Nothing fancy — no databases, no microservices — just JSON files, clean API design,  
+and a straightforward FastAPI backend that’s easy to understand and easy to build on.
 
-- Availability search
+Even though the app itself stays intentionally simple, the project uses a surprising  
+amount of modern tooling to show competence across the stack:
 
-- Booking creation
+### Technologies & Tools Used
 
-- My bookings view
+- **FastAPI** – backend framework
+- **Python 3.11+** – main language
+- **Vanilla HTML + JS frontend** – lightweight, fetch-based UI
+- **Typer CLI** – developer command-line interface
+- **HuggingFace Inference API** – small AI assistant for room suggestions
+- **JSON file persistence** – no database required
+- **Docker & Docker Compose** – containerized runtime
+- **GitHub Actions CI** – automated linting, typing, tests, import checks
+- **ruff** – formatting + linting
+- **mypy** – static type checking
+- **pytest** – smoke testing
 
-- Cancel booking
+The entire point was to build something that:
 
-- Inline error messages with structured FastAPI error envelopes
-
-- A simple built-in **web frontend** (no framework)
-
-- A developer **CLI**
-
-- Persistent JSON storage
-
-- CI: ruff, mypy, pytest, import validation
-
-This is a lightweight learning project demonstrating API design, error modeling, frontend consumption via `fetch()`, and safer patterns for file-backed persistence.
+- works end-to-end
+- is easy to test
+- is easy to read
+- demonstrates real tooling used in modern development
+- and is small enough that you can understand the whole codebase in an hour
 
 ---
 
-# 🚀 Quick Start
+# Quick Start (Local)
 
-### 1) Install dependencies
-
-```bash
-
+`bash
 pip install -r requirements.txt
-
-```
-
----
-
-### 2) Run the API + Frontend
-
-```bash
-
 uvicorn app.main:app --reload
+`
 
-```
-
-Visit:
-
-- **Frontend UI** → http://127.0.0.1:8000/
-
-- **API metadata** → http://127.0.0.1:8000/api
-
-- **Swagger docs** → http://127.0.0.1:8000/docs
-
-- **ReDoc** → http://127.0.0.1:8000/redoc
+Frontend: http://127.0.0.1:8000/  
+Docs: http://127.0.0.1:8000/docs
 
 ---
 
-# 🖥️ Frontend UI (MVP)
+# Run with Docker
 
-A pure **vanilla HTML + JS** frontend lives in:
+Found at:
 
-```
+> https://hub.docker.com/repository/docker/pkguffey1/study-room-booking-lite/general
 
-web/index.html
+`bash
+docker compose build
+docker compose up
+`
 
-```
+Visit the app at:
 
-It is automatically served at:
-
-```
-
-GET /
-
-```
-
-### The UI supports:
-
-✔ Load Rooms
-
-✔ Search availability
-
-✔ Create booking
-
-✔ View my bookings
-
-✔ Cancel booking
-
-✔ Inline structured error display (`error.code`, `error.message`, `error.hint`)
-
-✔ Mobile-friendly via Tailwind CDN
-
-✔ Uses `fetch()` to call all API endpoints
+> http://localhost:8000/
 
 ---
 
-# 🧪 Running Tests
+# Full Usage Guide
 
-This project includes CI-verified smoke tests.
+For **complete instructions**, including:
 
-Run locally:
+- CLI usage
+- AI assistant
+- Docker commands
+- Curl examples
+- Troubleshooting
 
-```bash
-
-pytest -q
-
-```
-
-Tests confirm:
-
-- API imports cleanly
-
-- `/health` responds with `{ "status": "ok" }`
-
-- `/api` exposes service metadata
+👉 **See the full usage guide here:**  
+👉 **[usage.md](usage.md)**
 
 ---
 
-# 🛠️ Developer CLI
+# License
 
-A simple Typer-powered CLI is included:
-
-```bash
-
-python cli.py rooms
-
-python cli.py search 2025-11-02 13:00 14:00
-
-python cli.py book 1 2 2025-11-02T13:00:00 2025-11-02T14:00:00
-
-python cli.py mine 1
-
-python cli.py cancel 5
-
-```
-
-Once installed in editable mode:
-
-```bash
-
-pip install -e .
-
-study-cli rooms
-
-```
-
-The CLI is validated in CI to ensure no regressions.
-
----
-
-# 📦 Data & Persistence
-
-All runtime JSON storage lives in `data/`.
-
-- `rooms.json` — static room catalog
-
-- `bookings.json` — saved on every booking / cancel
-
-- `errors.ndjson` — structured error envelope logs
-
-- `data/outbox/` — mock outbound emails (`booking_123.txt`)
-
-This project uses **atomic writes** to avoid partial corruption.
-
----
-
-# 🔧 CI / CD Pipeline
-
-Your GitHub Actions workflow (`ci.yml`) runs:
-
-- ✔ **ruff check** (lint)
-
-- ✔ **ruff format --check**
-
-- ✔ **mypy** (type checking)
-
-- ✔ **pytest**
-
-- ✔ Import FastAPI app
-
-- ✔ Import CLI
-
-- ✔ Multi-Python matrix (3.11 + 3.12)
-
-A merged PR means all validations passed.
-
----
-
-# 🌐 API Overview
-
-### `/api`
-
-Returns metadata:
-
-```json
-{
-	"ok": true,
-
-	"service": "Study Room Booking – Lite",
-
-	"version": "0.3.0",
-
-	"endpoints": ["/rooms", "/search", "/bookings", "/users/{user_id}/bookings"]
-}
-```
-
-### `/rooms`
-
-### `/search?date=YYYY-MM-DD&start=HH:MM&end=HH:MM`
-
-### `POST /bookings`
-
-### `/users/{user_id}/bookings`
-
-### `DELETE /bookings/{booking_id}`
-
-All errors follow a structured envelope:
-
-```json
-{
-	"error": {
-		"code": "OVERLAP_CONFLICT",
-
-		"message": "room already booked for that window",
-
-		"hint": "Pick a different time or room.",
-
-		"status": 409,
-
-		"path": "/bookings",
-
-		"method": "POST",
-
-		"ts": "2025-11-21T10:31:02.512Z"
-	}
-}
-```
-
----
+MIT – purely educational project.
