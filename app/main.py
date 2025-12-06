@@ -15,12 +15,25 @@ from typing import NoReturn, Optional, Any, Dict, List as _List, cast
 from pydantic import BaseModel as _BaseModel
 from .emailer import write_confirmation
 from .storage import FileStore
+from .ai_chat import chat_with_ai
+from dotenv import load_dotenv
+
+load_dotenv()  # Load .env for HF_API_KEY, HF_MODEL_ID
 
 app = FastAPI(
     title="Study Room Booking – Lite",
     description="Local-only, file-backed demo API with structured errors and developer CLI.",
     version="0.3.0",
 )
+
+
+class AIChatRequest(BaseModel):
+    message: str
+
+
+class AIChatResponse(BaseModel):
+    reply: str
+
 
 # --- Web frontend directory ---
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
@@ -379,6 +392,35 @@ def cancel_booking(booking_id: int):
         )
     BOOKINGS.pop(idx)
     store.save_bookings(BOOKINGS)
+
+
+@app.post(
+    "/ai/chat",
+    tags=["ai"],
+    summary="Chat with the Study Room AI assistant",
+    response_model=AIChatResponse,
+)
+def ai_chat(payload: AIChatRequest, request: Request):
+    try:
+        reply = chat_with_ai(payload.message)
+    except RuntimeError as e:
+        err(
+            "GENAI_UNAVAILABLE",
+            "AI assistant is not configured.",
+            hint="Set HF_API_KEY and HF_MODEL_ID in .env.",
+            extras={"reason": str(e)},
+            status=503,
+        )
+    except Exception as e:
+        err(
+            "GENAI_FAILED",
+            "The AI assistant could not respond.",
+            hint="Try again in a moment.",
+            extras={"reason": str(e.__class__.__name__)},
+            status=502,
+        )
+
+    return AIChatResponse(reply=reply)
 
 
 # ---------- helpers ----------
