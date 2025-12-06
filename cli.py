@@ -185,6 +185,7 @@ def cancel(
         )
         sys.exit(2)
 
+
 @app.command("ai-chat")
 def ai_chat(
     message: str = typer.Argument(
@@ -214,7 +215,6 @@ def ai_chat(
             fg=typer.colors.RED,
         )
         sys.exit(2)
-
 
 
 if __name__ == "__main__":

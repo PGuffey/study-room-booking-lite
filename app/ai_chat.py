@@ -28,7 +28,9 @@ def _get_client() -> InferenceClient:
     log.info("HF_MODEL_ID debug: %r", os.getenv("HF_MODEL_ID"))
 
     api_key = os.getenv("HF_API_KEY", "").strip().strip('"').strip("'")
-    model_id = os.getenv("HF_MODEL_ID", "google/gemma-2-2b-it").strip().strip('"').strip("'")
+    model_id = (
+        os.getenv("HF_MODEL_ID", "google/gemma-2-2b-it").strip().strip('"').strip("'")
+    )
 
     if not api_key:
         raise RuntimeError("HF_API_KEY not configured")
@@ -38,7 +40,6 @@ def _get_client() -> InferenceClient:
         log.info("Initializing HF InferenceClient with model %s", model_id)
         _client = InferenceClient(model=model_id, token=api_key)
     return _client
-
 
 
 SYSTEM_PROMPT = (

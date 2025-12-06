@@ -18,7 +18,7 @@ from .storage import FileStore
 from .ai_chat import chat_with_ai
 from dotenv import load_dotenv
 
-load_dotenv() # Load .env for HF_API_KEY, HF_MODEL_ID
+load_dotenv()  # Load .env for HF_API_KEY, HF_MODEL_ID
 
 app = FastAPI(
     title="Study Room Booking – Lite",
@@ -26,11 +26,14 @@ app = FastAPI(
     version="0.3.0",
 )
 
+
 class AIChatRequest(BaseModel):
     message: str
 
+
 class AIChatResponse(BaseModel):
     reply: str
+
 
 # --- Web frontend directory ---
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
@@ -390,13 +393,13 @@ def cancel_booking(booking_id: int):
     BOOKINGS.pop(idx)
     store.save_bookings(BOOKINGS)
 
+
 @app.post(
     "/ai/chat",
     tags=["ai"],
     summary="Chat with the Study Room AI assistant",
     response_model=AIChatResponse,
 )
-
 def ai_chat(payload: AIChatRequest, request: Request):
     try:
         reply = chat_with_ai(payload.message)
@@ -418,7 +421,6 @@ def ai_chat(payload: AIChatRequest, request: Request):
         )
 
     return AIChatResponse(reply=reply)
-
 
 
 # ---------- helpers ----------
